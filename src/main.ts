@@ -279,6 +279,10 @@ function updatePhysics(deltaTime: number) {
     velocity.x += ax
     velocity.y += ay
 
+    // Add tiny randomness for organic feel
+    velocity.x += (Math.random() - 0.5) * 0.1
+    velocity.y += (Math.random() - 0.5) * 0.1
+
     // Friction (adjusted for time scale)
     const frictionPerFrame = Math.pow(friction, timeScale)
     velocity.x *= frictionPerFrame
@@ -333,7 +337,7 @@ function drawSpring() {
     const ny = tx / len
 
     // Visual tapering - wide at base, narrow at tip
-    let width = 25 * (1 - t)
+    let width = 25 * (1.2 - t)
     if (currentLen < restLength) {
       const bulge = 1 + ((restLength - currentLen) / restLength)
       width *= bulge
