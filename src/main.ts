@@ -127,6 +127,16 @@ const angularFriction = 0.9
 let slomoEnabled = false
 const slomoFactor = 20
 
+// Debug mode - enable with enableDebug() in console
+let debugMode = false
+;(window as any).enableDebug = () => {
+  debugMode = true
+  console.log('Debug mode enabled - will log physics state on each boing')
+}
+;(window as any).disableDebug = () => {
+  debugMode = false
+  console.log('Debug mode disabled')
+}
 
 // Initialize knob position after restLength is calculated
 knobPos.x = basePos.x + restLength
@@ -238,6 +248,19 @@ slomoToggle.addEventListener('change', () => {
 
 function triggerBoing(forceMagnitude: number) {
   if (!audioEnabled) return
+
+  if (debugMode) {
+    console.log('BOING', {
+      knobPos: { ...knobPos },
+      currentLength,
+      currentAngle,
+      lengthVelocity,
+      angularVelocity,
+      forceMagnitude,
+      restLength,
+      slomoEnabled
+    })
+  }
 
   // Calculate playback rate based on force - more force = higher pitch
   // Pitched up 10% overall (multiply by 1.1)
@@ -472,6 +495,30 @@ function updatePhysics(deltaTime: number) {
       currentLength = Math.hypot(knobPos.x - basePos.x, knobPos.y - basePos.y)
       lengthVelocity *= -0.5
     }
+  }
+
+  // Sanity check: reset if physics go haywire
+  const isInvalid = !Number.isFinite(currentLength) ||
+    !Number.isFinite(currentAngle) ||
+    !Number.isFinite(lengthVelocity) ||
+    !Number.isFinite(angularVelocity) ||
+    Math.abs(lengthVelocity) > 10000 ||
+    Math.abs(angularVelocity) > 1000
+
+  if (isInvalid) {
+    console.warn('Physics reset - invalid state detected', {
+      currentLength,
+      currentAngle,
+      lengthVelocity,
+      angularVelocity,
+      knobPos: { ...knobPos }
+    })
+    knobPos.x = basePos.x + restLength
+    knobPos.y = basePos.y
+    currentLength = restLength
+    currentAngle = 0
+    lengthVelocity = 0
+    angularVelocity = 0
   }
 }
 
