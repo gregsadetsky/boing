@@ -112,6 +112,7 @@ const pushLimit = 400
 let knobPos = { x: basePos.x + restLength, y: basePos.y }
 let isDragging = false
 let mousePos = { x: 0, y: 0 }
+let dragOffset = { x: 0, y: 0 } // Offset from click point to ball center
 let audioEnabled = false
 let lastTime = 0
 const targetFrameTime = 1000 / 60 // Target 60fps
@@ -322,16 +323,18 @@ function handleStart(pos: { x: number; y: number }) {
     audioEnabled = true
   }
 
-  const dist = Math.hypot(pos.x - knobPos.x, pos.y - knobPos.y)
-  if (dist < 50) {
-    // If catching the ball mid-air, fade out any playing sounds
-    const speed = Math.abs(lengthVelocity) + Math.abs(angularVelocity) * currentLength
-    if (speed > 1) {
-      fadeOutActiveSounds()
-    }
-    isDragging = true
-    mousePos = pos
+  // Allow clicking anywhere on canvas - calculate offset from click to ball center
+  dragOffset.x = knobPos.x - pos.x
+  dragOffset.y = knobPos.y - pos.y
+
+  // If catching the ball mid-air, fade out any playing sounds
+  const speed = Math.abs(lengthVelocity) + Math.abs(angularVelocity) * currentLength
+  if (speed > 1) {
+    fadeOutActiveSounds()
   }
+
+  isDragging = true
+  mousePos = pos
 }
 
 function handleMove(pos: { x: number; y: number }) {
@@ -421,8 +424,12 @@ function updatePhysics(deltaTime: number) {
   }
 
   if (isDragging) {
-    let dx = mousePos.x - basePos.x
-    let dy = mousePos.y - basePos.y
+    // Apply drag offset so physics is relative to clicked point
+    const targetX = mousePos.x + dragOffset.x
+    const targetY = mousePos.y + dragOffset.y
+
+    let dx = targetX - basePos.x
+    let dy = targetY - basePos.y
 
     // Wall constraint: cannot go behind wall
     if (dx < 0) dx = 0
