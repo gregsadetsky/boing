@@ -39,7 +39,7 @@ app.innerHTML = `
   <div class="ui-layer">
     <div id="boingCount">you've boinged 0 times</div>
     <div id="globalBoingCount">the world has boinged ? times</div>
-    <div id="footerLinks"><label><input type="checkbox" id="heatmapToggle"> boing heatmap</label> • <a href="https://github.com/gregsadetsky/boing" target="_blank">github</a></div>
+    <div id="footerLinks"><label><input type="checkbox" id="heatmapToggle"> boing heatmap</label> • <label><input type="checkbox" id="slomoToggle"> slomo</label> • <a href="https://github.com/gregsadetsky/boing" target="_blank">github</a></div>
   </div>
 `
 
@@ -50,6 +50,7 @@ const globalBoingCountEl = document.getElementById('globalBoingCount')!
 const mobileOverlay = document.getElementById('mobileOverlay')
 const mobileStartBtn = document.getElementById('mobileStartBtn')
 const heatmapToggle = document.getElementById('heatmapToggle') as HTMLInputElement
+const slomoToggle = document.getElementById('slomoToggle') as HTMLInputElement
 
 // --- Physics Configuration ---
 const basePos = { x: 17, y: 200 }
@@ -121,6 +122,10 @@ let currentAngle = 0
 let lengthVelocity = 0
 let angularVelocity = 0
 const angularFriction = 0.9
+
+// Slomo state
+let slomoEnabled = false
+const slomoFactor = 20
 
 
 // Initialize knob position after restLength is calculated
@@ -227,6 +232,10 @@ heatmapToggle.addEventListener('change', async () => {
   }
 })
 
+slomoToggle.addEventListener('change', () => {
+  slomoEnabled = slomoToggle.checked
+})
+
 function triggerBoing(forceMagnitude: number) {
   if (!audioEnabled) return
 
@@ -235,7 +244,12 @@ function triggerBoing(forceMagnitude: number) {
   const minRate = 0.9 * 1.1
   const maxRate = 1.5 * 1.1
   const normalizedForce = Math.min(forceMagnitude / 200, 1)
-  const rate = minRate + normalizedForce * (maxRate - minRate)
+  let rate = minRate + normalizedForce * (maxRate - minRate)
+
+  // Pitch down in slomo mode
+  if (slomoEnabled) {
+    rate = rate / 30
+  }
 
   // Calculate initial volume based on force
   const minVolume = 0.3
@@ -378,7 +392,10 @@ document.addEventListener('visibilitychange', () => {
 
 // --- Physics Engine ---
 function updatePhysics(deltaTime: number) {
-  const timeScale = deltaTime / targetFrameTime
+  let timeScale = deltaTime / targetFrameTime
+  if (slomoEnabled) {
+    timeScale = timeScale / slomoFactor
+  }
 
   if (isDragging) {
     let dx = mousePos.x - basePos.x
