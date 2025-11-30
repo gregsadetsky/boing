@@ -2,6 +2,20 @@ import { Howl } from 'howler'
 import isMobile from 'is-mobile'
 import './style.css'
 
+console.log(`%c
+888             d8b                 
+888             Y8P                 
+888                                 
+88888b.  .d88b. 88888888b.  .d88b.  
+888 "88bd88""88b888888 "88bd88P"88b 
+888  888888  888888888  888888  888 
+888 d88PY88..88P888888  888Y88b 888 
+88888P"  "Y88P" 888888  888 "Y88888 
+                                888 
+                           Y8b d88P 
+
+https://github.com/gregsadetsky/boing`, 'font-family: monospace; white-space: pre;')
+
 const API_URL = import.meta.env.VITE_API_URL ||
   (import.meta.env.PROD ? 'https://respected-accordion-31461.ondis.co' : '')
 
