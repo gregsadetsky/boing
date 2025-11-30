@@ -20,7 +20,7 @@ const API_URL = import.meta.env.VITE_API_URL ||
   (import.meta.env.PROD ? 'https://respected-accordion-31461.ondis.co' : '')
 
 // Global boing count from server
-let globalBoingCount = 0
+let globalBoingCount: number | null = null
 
 // Detect mobile (for audio unlock overlay)
 const isMobileDevice = isMobile()
@@ -39,6 +39,7 @@ app.innerHTML = `
   <div class="ui-layer">
     <div id="boingCount">you've boinged 0 times</div>
     <div id="globalBoingCount">the world has boinged ? times</div>
+    <div id="footerLinks"><a href="#" id="heatmapToggle">show heatmap</a> • <a href="https://github.com/gregsadetsky/boing" target="_blank">github</a></div>
   </div>
 `
 
@@ -48,6 +49,7 @@ const boingCountEl = document.getElementById('boingCount')!
 const globalBoingCountEl = document.getElementById('globalBoingCount')!
 const mobileOverlay = document.getElementById('mobileOverlay')
 const mobileStartBtn = document.getElementById('mobileStartBtn')
+const heatmapToggle = document.getElementById('heatmapToggle') as HTMLAnchorElement
 
 // --- Physics Configuration ---
 const basePos = { x: 17, y: 200 }
@@ -149,13 +151,17 @@ function fadeOutActiveSounds() {
 
 function updateBoingCountDisplay() {
   boingCountEl.innerText = `you've boinged ${boingCount.toLocaleString()} time${boingCount === 1 ? '' : 's'}`
-  globalBoingCountEl.innerText = `the world has boinged ${globalBoingCount.toLocaleString()} time${globalBoingCount === 1 ? '' : 's'}`
+  globalBoingCountEl.innerText = `the world has boinged ${globalBoingCount === null ? '?' : globalBoingCount.toLocaleString()} time${globalBoingCount === 1 ? '' : 's'}`
 }
 
-async function reportBoingToServer() {
+async function reportBoingToServer(angle: number, distRatio: number) {
   if (!API_URL) return
   try {
-    const res = await fetch(`${API_URL}/boing`, { method: 'POST' })
+    const res = await fetch(`${API_URL}/boing`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ angle, dist_ratio: distRatio })
+    })
     if (res.ok) {
       const data = await res.json()
       globalBoingCount = data.count
@@ -182,6 +188,45 @@ async function fetchGlobalCount() {
 
 // Fetch initial count
 fetchGlobalCount()
+
+// Heatmap state
+let heatmapVisible = false
+let heatmapImage: HTMLImageElement | null = null
+let heatmapInterval: number | null = null
+
+async function fetchHeatmapImage() {
+  if (!API_URL) return
+  try {
+    const url = `${API_URL}/heatmap?w=${canvas.width}&h=${canvas.height}&r=${Math.round(restLength)}&t=${Date.now()}`
+    const img = new Image()
+    img.crossOrigin = 'anonymous'
+    img.src = url
+    await new Promise((resolve, reject) => {
+      img.onload = resolve
+      img.onerror = reject
+    })
+    heatmapImage = img
+  } catch (e) {
+    // Silently fail
+  }
+}
+
+heatmapToggle.addEventListener('click', async (e) => {
+  e.preventDefault()
+  heatmapVisible = !heatmapVisible
+  heatmapToggle.textContent = heatmapVisible ? 'hide heatmap' : 'show heatmap'
+  if (heatmapVisible) {
+    await fetchHeatmapImage()
+    // Refresh every 5 seconds while visible
+    heatmapInterval = window.setInterval(fetchHeatmapImage, 5000)
+  } else {
+    // Stop refreshing when hidden
+    if (heatmapInterval) {
+      clearInterval(heatmapInterval)
+      heatmapInterval = null
+    }
+  }
+})
 
 function triggerBoing(forceMagnitude: number) {
   if (!audioEnabled) return
@@ -217,8 +262,9 @@ function triggerBoing(forceMagnitude: number) {
   localStorage.setItem('boingCount', boingCount.toString())
   updateBoingCountDisplay()
 
-  // Report to server
-  reportBoingToServer()
+  // Report to server with polar coordinates
+  // angle is in radians, distRatio is length/restLength
+  reportBoingToServer(currentAngle, currentLength / restLength)
 }
 
 
@@ -510,6 +556,11 @@ function draw(currentTime: number) {
   lastTime = currentTime
 
   ctx.clearRect(0, 0, canvas.width, canvas.height)
+
+  // Draw heatmap if visible
+  if (heatmapVisible && heatmapImage) {
+    ctx.drawImage(heatmapImage, 0, 0)
+  }
 
   // Wall
   ctx.fillStyle = '#ccc'

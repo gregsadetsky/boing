@@ -113,3 +113,18 @@ canvas:active {
   font-weight: normal;
   opacity: 0.7;
 }
+
+#footerLinks {
+  margin-top: 8px;
+  font-size: 11px;
+  pointer-events: auto;
+}
+
+#footerLinks a {
+  color: #777;
+  text-decoration: none;
+}
+
+#footerLinks a:hover {
+  text-decoration: underline;
+}
