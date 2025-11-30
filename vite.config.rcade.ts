@@ -1,3 +1,4 @@
+import { rename } from 'fs/promises'
 import { resolve } from 'path'
 import { defineConfig } from 'vite'
 
@@ -12,6 +13,14 @@ export default defineConfig({
           }
           next()
         })
+      },
+      async closeBundle() {
+        // Rename index-rcade.html to index.html after build
+        const outDir = resolve(__dirname, 'dist-rcade')
+        await rename(
+          resolve(outDir, 'index-rcade.html'),
+          resolve(outDir, 'index.html')
+        )
       },
     },
   ],

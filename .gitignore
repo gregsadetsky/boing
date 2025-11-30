@@ -24,3 +24,4 @@ dist-ssr
 *.sw?
 .claude
 .env
+dist-rcade
