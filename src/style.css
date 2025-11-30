@@ -128,3 +128,15 @@ canvas:active {
 #footerLinks a:hover {
   text-decoration: underline;
 }
+
+#footerLinks label {
+  cursor: pointer;
+  color: #777;
+}
+
+#footerLinks input[type="checkbox"] {
+  cursor: pointer;
+  position: relative;
+  top: 4px;
+  margin-right: -2px;
+}

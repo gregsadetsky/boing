@@ -39,7 +39,7 @@ app.innerHTML = `
   <div class="ui-layer">
     <div id="boingCount">you've boinged 0 times</div>
     <div id="globalBoingCount">the world has boinged ? times</div>
-    <div id="footerLinks"><a href="#" id="heatmapToggle">show heatmap</a> • <a href="https://github.com/gregsadetsky/boing" target="_blank">github</a></div>
+    <div id="footerLinks"><label><input type="checkbox" id="heatmapToggle"> boing heatmap</label> • <a href="https://github.com/gregsadetsky/boing" target="_blank">github</a></div>
   </div>
 `
 
@@ -49,7 +49,7 @@ const boingCountEl = document.getElementById('boingCount')!
 const globalBoingCountEl = document.getElementById('globalBoingCount')!
 const mobileOverlay = document.getElementById('mobileOverlay')
 const mobileStartBtn = document.getElementById('mobileStartBtn')
-const heatmapToggle = document.getElementById('heatmapToggle') as HTMLAnchorElement
+const heatmapToggle = document.getElementById('heatmapToggle') as HTMLInputElement
 
 // --- Physics Configuration ---
 const basePos = { x: 17, y: 200 }
@@ -211,10 +211,8 @@ async function fetchHeatmapImage() {
   }
 }
 
-heatmapToggle.addEventListener('click', async (e) => {
-  e.preventDefault()
-  heatmapVisible = !heatmapVisible
-  heatmapToggle.textContent = heatmapVisible ? 'hide heatmap' : 'show heatmap'
+heatmapToggle.addEventListener('change', async () => {
+  heatmapVisible = heatmapToggle.checked
   if (heatmapVisible) {
     await fetchHeatmapImage()
     // Refresh every 5 seconds while visible
