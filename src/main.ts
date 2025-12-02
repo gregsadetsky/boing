@@ -252,6 +252,22 @@ heatmapToggle.addEventListener('change', async () => {
 
 slomoToggle.addEventListener('change', () => {
   slomoEnabled = slomoToggle.checked
+
+  // Update playback rate of all currently playing sounds
+  activeSoundIds.forEach((id) => {
+    const currentRate = boingSound.rate(id) as number
+    let newRate: number
+
+    if (slomoEnabled) {
+      // Entering slomo - slow down the sound
+      newRate = currentRate / 30
+    } else {
+      // Exiting slomo - speed up the sound
+      newRate = currentRate * 30
+    }
+
+    boingSound.rate(newRate, id)
+  })
 })
 
 
