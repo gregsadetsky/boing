@@ -238,7 +238,27 @@ async function fetchHeatmapImage() {
 heatmapToggle.addEventListener('change', async () => {
   heatmapVisible = heatmapToggle.checked
   if (heatmapVisible) {
+    // Only blink on first load (no cached image yet)
+    const needsLoading = !heatmapImage
+    let blinkInterval: number | null = null
+
+    if (needsLoading) {
+      const label = heatmapToggle.parentElement!
+      let isGrey = false
+      blinkInterval = setInterval(() => {
+        isGrey = !isGrey
+        label.style.color = isGrey ? '#ccc' : ''
+      }, 600)
+    }
+
     await fetchHeatmapImage()
+
+    // Stop blinking
+    if (blinkInterval) {
+      clearInterval(blinkInterval)
+      heatmapToggle.parentElement!.style.color = ''
+    }
+
     // Refresh every 5 seconds while visible
     heatmapInterval = window.setInterval(fetchHeatmapImage, 5000)
   } else {
