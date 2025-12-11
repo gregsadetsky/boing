@@ -40,12 +40,55 @@ canvas {
   border: 2px solid #333;
   box-shadow: 10px 10px 0px rgba(0,0,0,0.1);
   touch-action: none;
+  outline: none;
+}
+
+canvas:focus-visible {
+  border-color: #f9a825;
+  box-shadow: 10px 10px 0px rgba(0,0,0,0.1), 0 0 0 3px rgba(249, 168, 37, 0.4);
 }
 
 .canvas-ui {
   text-align: center;
   color: #555;
   padding-top: 10px;
+}
+
+#keyboardInstructions {
+  position: absolute;
+  top: 10px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  color: #333;
+  background: #fffde7;
+  border: 1px solid #f9a825;
+  padding: 8px 14px;
+  border-radius: 6px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  transition: opacity 0.2s, transform 0.2s;
+  /* Hidden by default - shown when keyboard nav detected */
+  opacity: 0;
+  transform: translateX(-50%) translateY(-10px);
+  pointer-events: none;
+}
+
+/* Show when keyboard navigation is active */
+body.keyboard-nav #keyboardInstructions {
+  opacity: 1;
+  transform: translateX(-50%) translateY(0);
+}
+
+/* Fade after first use */
+body.keyboard-nav #keyboardInstructions.used {
+  opacity: 0.5;
+}
+
+/* Hide keyboard instructions on touch devices */
+@media (hover: none) and (pointer: coarse) {
+  #keyboardInstructions {
+    display: none;
+  }
 }
 
 #initAudio {
@@ -163,8 +206,19 @@ canvas {
     box-shadow: 10px 10px 0px rgba(0,0,0,0.3);
   }
 
+  canvas:focus-visible {
+    border-color: #ffd54f;
+    box-shadow: 10px 10px 0px rgba(0,0,0,0.3), 0 0 0 3px rgba(255, 213, 79, 0.3);
+  }
+
   .canvas-ui {
     color: #aaa;
+  }
+
+  #keyboardInstructions {
+    background: #3a3520;
+    border-color: #6d5a00;
+    color: #ffd54f;
   }
 
   #footerLinks a,

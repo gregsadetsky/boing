@@ -34,12 +34,13 @@ app.innerHTML = `
   </div>
   ` : ''}
   <div id="canvasWrapper">
-    <canvas id="canvas"></canvas>
+    <canvas id="canvas" tabindex="0"></canvas>
     <div class="canvas-ui">
       <div id="boingCount">you've boinged 0 times</div>
       <div id="globalBoingCount">the world has boinged ? times</div>
       <div id="footerLinks"><label><input type="checkbox" id="heatmapToggle"> boing heatmap</label> <label><input type="checkbox" id="slomoToggle"> slomo</label></div>
     </div>
+    <div id="keyboardInstructions">keyboard: hold Space + Arrow keys, release Space to boing!</div>
   </div>
   <div id="bottomLinks">
     <div id="newsletterLink"><a href="#" id="openNewsletter">subscribe to my newsletter</a></div>
@@ -183,6 +184,10 @@ let mousePos = { x: 0, y: 0 }
 let audioEnabled = false
 let lastTime = 0
 const targetFrameTime = 1000 / 60 // Target 60fps
+
+// Keyboard control state
+let keyboardGrabbing = false
+let keyboardDirection = { x: 0, y: 0 } // -1 to 1 for each axis
 
 // Polar physics state
 let currentLength = restLength
@@ -521,6 +526,113 @@ window.addEventListener('touchcancel', () => {
   handleEnd()
 })
 
+// --- Keyboard Controls (for accessibility) ---
+const activeKeys = new Set<string>()
+
+// Detect keyboard navigation (Tab key) to show instructions
+window.addEventListener('keydown', (e) => {
+  if (e.key === 'Tab') {
+    document.body.classList.add('keyboard-nav')
+  }
+})
+
+// Hide keyboard nav hints when mouse is used
+window.addEventListener('mousedown', () => {
+  document.body.classList.remove('keyboard-nav')
+})
+
+// Show instructions when canvas receives focus
+canvas.addEventListener('focus', () => {
+  document.body.classList.add('keyboard-nav')
+})
+
+canvas.addEventListener('keydown', (e) => {
+  const key = e.key
+
+  // Space or Enter to grab
+  if ((key === ' ' || key === 'Enter') && !keyboardGrabbing) {
+    e.preventDefault()
+
+    // Unlock audio on first interaction
+    if (!audioEnabled) {
+      const id = boingSound.play()
+      boingSound.volume(0, id)
+      boingSound.stop(id)
+      audioEnabled = true
+    }
+
+    // If catching mid-air, fade out sounds
+    const speed = Math.abs(lengthVelocity) + Math.abs(angularVelocity) * currentLength
+    if (speed > 1) {
+      fadeOutActiveSounds()
+    }
+
+    keyboardGrabbing = true
+    isDragging = true
+    keyboardDirection = { x: 0, y: 0 }
+
+    // Mark instructions as used (fades them)
+    const instructionsEl = document.getElementById('keyboardInstructions')
+    if (instructionsEl) {
+      instructionsEl.classList.add('used')
+    }
+  }
+
+  // Arrow keys to stretch (only while grabbing)
+  if (keyboardGrabbing && ['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key)) {
+    e.preventDefault()
+    activeKeys.add(key)
+    updateKeyboardDirection()
+  }
+})
+
+canvas.addEventListener('keyup', (e) => {
+  const key = e.key
+
+  // Release space/enter to boing
+  if ((key === ' ' || key === 'Enter') && keyboardGrabbing) {
+    e.preventDefault()
+    keyboardGrabbing = false
+    isDragging = false
+    activeKeys.clear()
+    keyboardDirection = { x: 0, y: 0 }
+
+    const dx = knobPos.x - (basePos.x + restLength)
+    const dy = knobPos.y - basePos.y
+    const displacement = Math.hypot(dx, dy)
+
+    if (displacement > 10) {
+      triggerBoing(displacement)
+    }
+  }
+
+  // Release arrow keys
+  if (['ArrowLeft', 'ArrowRight', 'ArrowUp', 'ArrowDown'].includes(key)) {
+    activeKeys.delete(key)
+    updateKeyboardDirection()
+  }
+})
+
+// Reset keyboard state if canvas loses focus while grabbing
+canvas.addEventListener('blur', () => {
+  if (keyboardGrabbing) {
+    keyboardGrabbing = false
+    isDragging = false
+    activeKeys.clear()
+    keyboardDirection = { x: 0, y: 0 }
+  }
+})
+
+function updateKeyboardDirection() {
+  keyboardDirection.x = 0
+  keyboardDirection.y = 0
+
+  if (activeKeys.has('ArrowLeft')) keyboardDirection.x -= 1
+  if (activeKeys.has('ArrowRight')) keyboardDirection.x += 1
+  if (activeKeys.has('ArrowUp')) keyboardDirection.y -= 1
+  if (activeKeys.has('ArrowDown')) keyboardDirection.y += 1
+}
+
 // Neutralize spring when tab loses focus (but let sounds finish playing)
 document.addEventListener('visibilitychange', () => {
   if (document.hidden) {
@@ -532,6 +644,10 @@ document.addEventListener('visibilitychange', () => {
     lengthVelocity = 0
     angularVelocity = 0
     isDragging = false
+    // Reset keyboard state
+    keyboardGrabbing = false
+    keyboardDirection = { x: 0, y: 0 }
+    activeKeys.clear()
   }
 })
 
@@ -554,8 +670,26 @@ function updatePhysicsStep(deltaTime: number) {
   }
 
   if (isDragging) {
-    let dx = mousePos.x - basePos.x
-    let dy = mousePos.y - basePos.y
+    let dx: number
+    let dy: number
+
+    if (keyboardGrabbing) {
+      // Keyboard control: lerp toward target position based on arrow keys
+      // Horizontal needs larger value because resistance curve limits stretch more than angle
+      const targetX = basePos.x + restLength + keyboardDirection.x * 3500
+      const targetY = basePos.y + keyboardDirection.y * 500
+
+      const lerpSpeed = 0.15 * timeScale
+      const goalX = knobPos.x + (targetX - knobPos.x) * lerpSpeed
+      const goalY = knobPos.y + (targetY - knobPos.y) * lerpSpeed
+
+      dx = goalX - basePos.x
+      dy = goalY - basePos.y
+    } else {
+      // Mouse/touch control
+      dx = mousePos.x - basePos.x
+      dy = mousePos.y - basePos.y
+    }
 
     // Wall constraint: cannot go behind wall
     if (dx < 0) dx = 0
@@ -781,8 +915,8 @@ function draw(currentTime: number) {
   ctx.lineTo(basePos.x, canvas.height)
   ctx.stroke()
 
-  // Tension line while dragging
-  if (isDragging) {
+  // Tension line while dragging (mouse/touch only, not keyboard)
+  if (isDragging && !keyboardGrabbing) {
     ctx.beginPath()
     ctx.moveTo(knobPos.x, knobPos.y)
     ctx.lineTo(mousePos.x, mousePos.y)
