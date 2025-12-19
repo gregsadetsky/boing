@@ -44,7 +44,7 @@ app.innerHTML = `
   </div>
   <div id="bottomLinks">
     <div id="newsletterLink"><a href="#" id="openNewsletter">subscribe to my newsletter</a></div>
-    <div id="creditLinks"><a href="https://github.com/gregsadetsky/boing" target="_blank">github</a> • <a href="https://disco.cloud/" target="_blank">hosted with Disco</a></div>
+    <div id="creditLinks"><a href="mailto:hi@greg.technology">e-mail</a> • <a href="https://github.com/gregsadetsky/boing" target="_blank">github</a> • <a href="https://disco.cloud/" target="_blank">hosted with Disco</a></div>
   </div>
   <div id="newsletterModal">
     <div id="newsletterModalContent">
